@@ -1,22 +1,8 @@
 services:
-#   fabric-clock:
-#     image: ghcr.io/peonist-ai/halogen-flash-server:0.18.9
-#     container_name: halogen-fabric-clock
-#     restart: no
-#     privileged: true
-#     pid: host
-#     entrypoint: /usr/local/bin/halogen-fabric-clock
-#     command: ["/usr/local/bin/halogen-fabric-clock", "hold"]
-#     volumes:
-#       - /sys:/host/sys
-      
   halogen:
     image: ghcr.io/peonist-ai/halogen-flash-server:0.18.9
     container_name: halogen
     restart: unless-stopped
-#     depends_on:
-#       fabric-clock:
-#         condition: service_completed_successfully
     ports:
       - "8731:8731"
     privileged: true
@@ -34,10 +20,13 @@ services:
         hard: -1
     stop_grace_period: 60s
     environment:
-#       HALOGEN_DOWNLOAD: Quat3rnion/halogen-qwen3.8-flash-next-v2-abliterated
-      HALOGEN_DOWNLOAD: peonist-ai/halogen-qwen3.8-flash-next
+      HALOGEN_DOWNLOAD: Quat3rnion/halogen-qwen3.8-flash-next-v2-abliterated
+      HALOGEN_CHECKPOINT: /models/qwen38-flash-next-v2-abliterated.hgn
+      # HALOGEN_DOWNLOAD: peonist-ai/halogen-qwen3.8-flash-next
+      # HALOGEN_CHECKPOINT: /models/qwen38-flash-next-v2.hgn
       HALOGEN_NPU_MODELS: >-
         decider-0.8b,qwen3-embedding-0.6b,qwen3-reranker-0.6b,qwen3guard-gen-0.6b,qwen3.5-2b
+      HALOGEN_MODEL_ID: halogen-v2-abliterated
     volumes:
       - ./models:/models
       - /opt/xilinx:/opt/xilinx:ro
