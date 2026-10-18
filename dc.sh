@@ -5,8 +5,8 @@
 #   ./dc.sh init                    copy .env.example + docker-compose.yml.example
 #                                   (if missing) + build model-download
 #   ./dc.sh init:override           copy docker-compose.override.yml.example
-#   ./dc.sh download                fetch weights for the active .env set (profile init)
-#   ./dc.sh up [service ...]        start the stack (default: halogen)
+#   ./dc.sh download                fetch weights for the active .env set (one-shot)
+#   ./dc.sh up [service ...]        start the stack (default: halogen; waits for download)
 #   ./dc.sh down [args ...]         stop the stack
 #   ./dc.sh restart                 recreate halogen after an .env set switch
 #   ./dc.sh ps                      list containers
@@ -15,10 +15,12 @@
 #   ./dc.sh build [service ...]     build images (default: model-download)
 #
 # First-time / after wiping ./models:
-#   ./dc.sh init && ./dc.sh download && ./dc.sh up
+#   ./dc.sh init && ./dc.sh up
+#   # or: docker compose up -d  (model-download runs first, then halogen)
 #
 # Switch sets: edit .env (one profile block active), then:
 #   ./dc.sh download && ./dc.sh restart
+#   # or: docker compose up -d --force-recreate
 #
 # GPU: VIDEO_GID / RENDER_GID are auto-detected; override with:
 #   VIDEO_GID=44 RENDER_GID=999 ./dc.sh up
@@ -122,8 +124,8 @@ case "${cmd}" in
         export_gpu_gids
         echo "==> Building model-download"
         mapfile -t MAIN < <(compose_main)
-        ${COMPOSE} "${MAIN[@]}" --profile init build model-download
-        echo "==> Done. Edit .env to pick a set, then: ./dc.sh download && ./dc.sh up"
+        ${COMPOSE} "${MAIN[@]}" build model-download
+        echo "==> Done. Edit .env to pick a set, then: ./dc.sh up"
         echo "==> Optional tsdproxy: ./dc.sh init:override"
         ;;
     init:override)
@@ -132,14 +134,14 @@ case "${cmd}" in
         ;;
     download)
         export_gpu_gids
-        echo "==> Downloading model weights for the active .env set (profile init; idempotent)"
+        echo "==> Downloading model weights for the active .env set (idempotent)"
         mapfile -t MAIN < <(compose_main)
         if [ -t 1 ]; then
             echo "==> Progress bars enabled (interactive TTY)"
-            ${COMPOSE} "${MAIN[@]}" --profile init run --rm model-download
+            ${COMPOSE} "${MAIN[@]}" run --rm model-download
         else
             echo "==> No TTY: bars may be limited. Watch size with: watch -n2 du -sh ${MODELS_DIR:-./models}"
-            ${COMPOSE} "${MAIN[@]}" --profile init run --rm -T model-download
+            ${COMPOSE} "${MAIN[@]}" run --rm -T model-download
         fi
         ;;
     up)
@@ -173,7 +175,7 @@ case "${cmd}" in
         services="${@:-model-download}"
         export_gpu_gids
         mapfile -t MAIN < <(compose_main)
-        ${COMPOSE} "${MAIN[@]}" --profile init build ${services}
+        ${COMPOSE} "${MAIN[@]}" build ${services}
         ;;
     config)
         export_gpu_gids

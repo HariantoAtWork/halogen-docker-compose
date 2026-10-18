@@ -1,15 +1,14 @@
-# Halogen flash server (Strix Halo). Weights are fetched separately:
-#   ./dc.sh download   # profile init — multi-repo HF pull into ./models
-#   ./dc.sh up         # start halogen (expects weights already present)
+# Halogen flash server (Strix Halo).
+#
+#   docker compose up -d   # runs model-download first, then halogen
+#   ./dc.sh up             # same, plus readiness wait
 #
 # Switch model sets in .env (see .env.example).
 
 services:
-  # One-shot HF weight fetch — enabled only with profile "init"
-  # (./dc.sh download). Not started by plain `compose up`.
+  # One-shot HF weight fetch. Exits 0 when done (idempotent if weights exist).
+  # halogen waits on service_completed_successfully before starting.
   model-download:
-    profiles:
-      - init
     env_file:
       - .env
     build:
@@ -17,6 +16,7 @@ services:
       dockerfile: Dockerfile
     image: harianto/halogen-hf-downloader:${HF_DOWNLOADER_TAG:-latest}
     working_dir: /workspace
+    restart: "no"
     volumes:
       - "${MODELS_DIR:-./models}:/workspace/models"
     environment:
@@ -30,6 +30,9 @@ services:
     image: ghcr.io/peonist-ai/halogen-flash-server:${HALOGEN_IMAGE_TAG:-0.18.9}
     container_name: halogen
     restart: unless-stopped
+    depends_on:
+      model-download:
+        condition: service_completed_successfully
     ports:
       - "${HALOGEN_HOST_PORT:-8731}:8731"
     privileged: true
@@ -48,7 +51,7 @@ services:
     stop_grace_period: 60s
     environment:
       # HALOGEN_DOWNLOAD enables NPU auto-fetch and (for peonist sets) companion
-      # recovery. Abliterated sets still need ./dc.sh download for n-gram/vision/
+      # recovery. Abliterated sets still need model-download for n-gram/vision/
       # tokenizer — Quat3rnion does not publish those companions.
       HALOGEN_DOWNLOAD: ${HALOGEN_DOWNLOAD:-}
       HALOGEN_CHECKPOINT: ${HALOGEN_CHECKPOINT:?set HALOGEN_CHECKPOINT}
