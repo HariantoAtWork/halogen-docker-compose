@@ -2,7 +2,9 @@
 # dc.sh — docker compose helper for the halogen stack.
 #
 # Usage:
-#   ./dc.sh init                    copy .env.example → .env (if missing) + build model-download
+#   ./dc.sh init                    copy .env.example + docker-compose.yml.example
+#                                   (if missing) + build model-download
+#   ./dc.sh init:override           copy docker-compose.override.yml.example
 #   ./dc.sh download                fetch weights for the active .env set (profile init)
 #   ./dc.sh up [service ...]        start the stack (default: halogen)
 #   ./dc.sh down [args ...]         stop the stack
@@ -28,7 +30,7 @@ cd "$(dirname "$0")"
 COMPOSE="docker compose"
 
 usage() {
-    sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 compose_main() {
@@ -114,13 +116,19 @@ shift || true
 
 case "${cmd}" in
     init)
-        echo "==> Initialising .env from example (if missing)"
+        echo "==> Initialising from examples (existing files are kept)"
         cp_example .env.example .env
+        cp_example docker-compose.yml.example docker-compose.yml
         export_gpu_gids
         echo "==> Building model-download"
         mapfile -t MAIN < <(compose_main)
         ${COMPOSE} "${MAIN[@]}" --profile init build model-download
         echo "==> Done. Edit .env to pick a set, then: ./dc.sh download && ./dc.sh up"
+        echo "==> Optional tsdproxy: ./dc.sh init:override"
+        ;;
+    init:override)
+        echo "==> Initialising docker-compose.override.yml"
+        cp_example docker-compose.override.yml.example docker-compose.override.yml
         ;;
     download)
         export_gpu_gids
