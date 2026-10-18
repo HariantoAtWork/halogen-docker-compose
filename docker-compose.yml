@@ -28,7 +28,8 @@ services:
       HALOGEN_VISION_TOWER: /models/qwen38-flash-next-vision.hgn
       HALOGEN_NPU_MODELS: >-
         decider-0.8b,qwen3-embedding-0.6b,qwen3-reranker-0.6b,qwen3guard-gen-0.6b,qwen3.5-2b
-      HALOGEN_MODEL_ID: halogen-v2-abliterated
+      HALOGEN_MODEL_ID: qwen3.8-flash-next
+      # HALOGEN_MODEL_ID: halogen-v2-abliterated
     volumes:
       - ./models:/models
       - /opt/xilinx:/opt/xilinx:ro
