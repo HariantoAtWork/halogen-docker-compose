@@ -1,10 +1,37 @@
+# Halogen flash server (Strix Halo). Weights are fetched separately:
+#   ./dc.sh download   # profile init — multi-repo HF pull into ./models
+#   ./dc.sh up         # start halogen (expects weights already present)
+#
+# Switch model sets in .env (see .env.example).
+
 services:
+  # One-shot HF weight fetch — enabled only with profile "init"
+  # (./dc.sh download). Not started by plain `compose up`.
+  model-download:
+    profiles:
+      - init
+    env_file:
+      - .env
+    build:
+      context: src/model-download
+      dockerfile: Dockerfile
+    image: harianto/halogen-hf-downloader:${HF_DOWNLOADER_TAG:-latest}
+    working_dir: /workspace
+    volumes:
+      - "${MODELS_DIR:-./models}:/workspace/models"
+    environment:
+      # HF_DOWNLOAD_SPECS comes from env_file (.env) so multiline specs stay intact.
+      HF_TOKEN: ${HF_TOKEN:-}
+      HF_HUB_DISABLE_PROGRESS_BARS: "0"
+      PYTHONUNBUFFERED: "1"
+      TERM: ${TERM:-xterm-256color}
+
   halogen:
-    image: ghcr.io/peonist-ai/halogen-flash-server:0.18.9
+    image: ghcr.io/peonist-ai/halogen-flash-server:${HALOGEN_IMAGE_TAG:-0.18.9}
     container_name: halogen
     restart: unless-stopped
     ports:
-      - "8731:8731"
+      - "${HALOGEN_HOST_PORT:-8731}:8731"
     privileged: true
     devices:
       - /dev/kfd
@@ -20,17 +47,15 @@ services:
         hard: -1
     stop_grace_period: 60s
     environment:
-      HALOGEN_DOWNLOAD: Quat3rnion/halogen-qwen3.8-flash-next-v2-abliterated
-      HALOGEN_CHECKPOINT: /models/qwen38-flash-next-v2-abliterated.hgn
-      # HALOGEN_DOWNLOAD: peonist-ai/halogen-qwen3.8-flash-next
-      # HALOGEN_CHECKPOINT: /models/qwen38-flash-next-v2.hgn
-      # Vision sidecar (0.84 GiB); without this the server is text-only.
-      HALOGEN_VISION_TOWER: /models/qwen38-flash-next-vision.hgn
-      HALOGEN_NPU_MODELS: >-
-        decider-0.8b,qwen3-embedding-0.6b,qwen3-reranker-0.6b,qwen3guard-gen-0.6b,qwen3.5-2b
-      HALOGEN_MODEL_ID: qwen3.8-flash-next
-      # HALOGEN_MODEL_ID: halogen-v2-abliterated
+      # HALOGEN_DOWNLOAD enables NPU auto-fetch and (for peonist sets) companion
+      # recovery. Abliterated sets still need ./dc.sh download for n-gram/vision/
+      # tokenizer — Quat3rnion does not publish those companions.
+      HALOGEN_DOWNLOAD: ${HALOGEN_DOWNLOAD:-}
+      HALOGEN_CHECKPOINT: ${HALOGEN_CHECKPOINT:?set HALOGEN_CHECKPOINT}
+      HALOGEN_VISION_TOWER: ${HALOGEN_VISION_TOWER:-}
+      HALOGEN_NPU_MODELS: ${HALOGEN_NPU_MODELS:-}
+      HALOGEN_MODEL_ID: ${HALOGEN_MODEL_ID:-halogen}
     volumes:
-      - ./models:/models
+      - "${MODELS_DIR:-./models}:/models"
       - /opt/xilinx:/opt/xilinx:ro
       - /sys:/host/sys
