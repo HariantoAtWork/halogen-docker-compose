@@ -1,0 +1,15 @@
+networks:
+  tsdproxy:
+    external: true
+
+services:
+  halogen:
+    ports: !reset
+    networks:
+      - tsdproxy
+    labels:
+      tsdproxy.enable: true
+      tsdproxy.name: halogen
+      tsdproxy.autodetect: true
+      tsdproxy.port.1: "443/https:8731/http"
+      tsdproxy.port.2: "80/http:8731/http"
