@@ -24,6 +24,8 @@ services:
       HALOGEN_CHECKPOINT: /models/qwen38-flash-next-v2-abliterated.hgn
       # HALOGEN_DOWNLOAD: peonist-ai/halogen-qwen3.8-flash-next
       # HALOGEN_CHECKPOINT: /models/qwen38-flash-next-v2.hgn
+      # Vision sidecar (0.84 GiB); without this the server is text-only.
+      HALOGEN_VISION_TOWER: /models/qwen38-flash-next-vision.hgn
       HALOGEN_NPU_MODELS: >-
         decider-0.8b,qwen3-embedding-0.6b,qwen3-reranker-0.6b,qwen3guard-gen-0.6b,qwen3.5-2b
       HALOGEN_MODEL_ID: halogen-v2-abliterated
